@@ -1,9 +1,13 @@
+from datetime import datetime
+import uuid
 from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Product, Cart, CartItem, Order
 from .serializers import ProductSerializer, CartSerializer, CartItemSerializer, OrderSerializer
+from rave_python import Rave, RaveExceptions
+from rest_framework.views import APIView
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -35,5 +39,47 @@ class CartViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
+
+class FlutterwavePaymentView(APIView):
+
+    def generateTransactionReference(self):
+        """
+        Funtion to generate a unique transaction reference.
+        Combines timestamp and a UUID.
+        """
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        unique_id = str(uuid.uuid4()).replace("-", "")
+
+        transaction_ref = f"TX-{timestamp}-{unique_id[:8]}"
+    
+        return transaction_ref
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        print("Received data:", data)  # For Debug delete later
+        txRef = self.generateTransactionReference()
+        payload = {
+            "cardno": data.get("cardno"),
+            "cvv": data.get("cvv"),
+            "expirymonth": data.get("expirymonth"),
+            "expiryyear": data.get("expiryyear"),
+            "amount": data.get("amount"),
+            "email": data.get("email"),
+            "currency": data.get("currency"),
+            "redirect_url": data.get("redirect_url"),
+            "customer": data.get("customer"),
+            "customizations": data.get("customizations"),
+            "txRef": txRef,
+            "tx_ref": data.get("txRef")
+        }
+        print("Payload:", payload)  # For Debug
+        try:
+            rave = Rave("FLWPUBK_TEST-be694efe737df0c8f6e5e77618226ec4-X", "FLWSECK_TEST-560c8c6b7a1aef77c33ef05489e72d5f-X", usingEnv=False)
+            response = rave.Card.charge(payload)
+            return Response(response, status=status.HTTP_200_OK)
+        except RaveExceptions.CardChargeError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
 
 # Create your views here.
