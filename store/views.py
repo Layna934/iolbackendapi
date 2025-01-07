@@ -83,3 +83,7 @@ class FlutterwavePaymentView(APIView):
 
 
 # Create your views here.
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
