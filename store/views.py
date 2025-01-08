@@ -75,10 +75,15 @@ class FlutterwavePaymentView(APIView):
         }
         print("Payload:", payload)  # For Debug
         try:
-            rave = Rave("settings.SECRET_KEY", "settings.PUBLIC_KEY", usingEnv=False)
+            rave = Rave("settings.FLUTTERWAVE_SECRET_KEY", "settings.FLUTTERWAVE_PUBLIC_KEY", usingEnv=False)
             response = rave.Card.charge(payload)
-            return Response(response, status=status.HTTP_200_OK)
+            print("Flutterwave Response:", response)  # Debugging
+            if response.get("status") == "success":
+                return Response({"message": "Payment successful", "data": response}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Payment failed", "data": response}, status=status.HTTP_400_BAD_REQUEST)
         except RaveExceptions.CardChargeError as e:
+            print("Flutterwave Error:", str(e))
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 

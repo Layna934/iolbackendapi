@@ -15,8 +15,8 @@ from datetime import timedelta
 
 import os
 
-FLUTTERWAVE_SECRET_KEY = os.getenv('SECRET_KEY')
-FLUTTERWAVE_PUBLIC_KEY = os.getenv('PUBLIC_KEY')
+FLUTTERWAVE_SECRET_KEY = os.getenv('FLUTTERWAVE_SECRET_KEY')
+FLUTTERWAVE_PUBLIC_KEY = os.getenv('FLUTTERWAVE_PUBLIC_KEY')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
