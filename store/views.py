@@ -1,13 +1,14 @@
 from datetime import datetime
 import uuid
 from django.shortcuts import render
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Product, Cart, CartItem, Order
-from .serializers import ProductSerializer, CartSerializer, CartItemSerializer, OrderSerializer
+from .serializers import ProductSerializer, CartSerializer, CartItemSerializer, OrderSerializer, UserSerializer
 from rave_python import Rave, RaveExceptions
 from rest_framework.views import APIView
+from .models import User
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -74,7 +75,7 @@ class FlutterwavePaymentView(APIView):
         }
         print("Payload:", payload)  # For Debug
         try:
-            rave = Rave("FLWPUBK_TEST-be694efe737df0c8f6e5e77618226ec4-X", "FLWSECK_TEST-560c8c6b7a1aef77c33ef05489e72d5f-X", usingEnv=False)
+            rave = Rave("settings.SECRET_KEY", "settings.PUBLIC_KEY", usingEnv=False)
             response = rave.Card.charge(payload)
             return Response(response, status=status.HTTP_200_OK)
         except RaveExceptions.CardChargeError as e:
@@ -87,3 +88,17 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        cart = Cart.objects.create(user=user)
+        self.cart_id = cart.id
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        response.data = {
+            'status': 'user and cart created',
+            'user_id': response.data['id'],
+            'cart_id': self.cart_id 
+        }
+        return response
